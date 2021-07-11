@@ -1,0 +1,5 @@
+/.vscode
+/_out
+
+*.test
+*.out
