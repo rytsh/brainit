@@ -18,24 +18,27 @@ func (m *Memory) Init(v interface{}) *Memory {
 	m.Current = element
 	m.Current.Value = v
 
+	m.Len = 1
+
 	return m
 }
 
 // RemoveUntil remove code from front of memory an element.
+// if element not inside of memory, nothing change.
 func (m *Memory) RemoveUntil(e *Element) {
 	current := m.Front
-	for current != e {
-		current.prevElement = nil
+	count := 0
+	for current != nil && current != e {
+		count++
 		current = current.nextElement
-		// remove prev element values
-		current.prevElement.nextElement = nil
-		current.prevElement.list = nil
-		current.prevElement = nil
 	}
 
-	m.Front = current
-	m.Back = current
-	m.Current = current
+	if current != nil && count > 0 {
+		current.prevElement = nil
+		m.Len = m.Len - uint(count)
+		m.Front = current
+		m.Current = current
+	}
 }
 
 // NewMemory is a helper function to get a functional memory.
@@ -66,7 +69,6 @@ func (e *Element) Next(v interface{}) *Element {
 	if e.nextElement == nil {
 		e.nextElement = e.NewElement()
 		e.nextElement.prevElement = e
-		e.list.Front = e.nextElement
 		e.nextElement.Value = v
 
 		e.list.Back = e.nextElement
@@ -75,15 +77,14 @@ func (e *Element) Next(v interface{}) *Element {
 	return e.nextElement
 }
 
-// Prev generate new element or exist previous element.
+// Prev generate new element with argument or return exist previous element.
 func (e *Element) Prev(v interface{}) *Element {
 	if e.prevElement == nil {
 		e.prevElement = e.NewElement()
 		e.prevElement.nextElement = e
-		e.list.Back = e.prevElement
 		e.prevElement.Value = v
 
-		e.list.Front = e.nextElement
+		e.list.Front = e.prevElement
 	}
 
 	return e.prevElement

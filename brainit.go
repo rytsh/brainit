@@ -10,13 +10,12 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"log"
 )
 
-var (
-	ErrExit = errors.New("brainit: exit loop")
-	ErrSkip = errors.New("brainit: not possible case")
-)
+// ErrExit should throw for exiting loop.
+var ErrExit = errors.New("brainit: exit loop")
+
+var errSkip = errors.New("brainit: not possible case")
 
 type beginEnd uint
 
@@ -25,7 +24,7 @@ const (
 	end
 )
 
-// Exec function signature, usable for add new ones.
+// Exec is function signature, usable for add new ones.
 type Exec func(*Interpreter) error
 
 // LoopKey to record new new loop runes.
@@ -61,6 +60,7 @@ func (i *Interpreter) Init() *Interpreter {
 	i.memory = NewMemory(rune(0))
 	i.recCode = NewMemory(rune(0))
 	i.executor = make(map[rune]Exec)
+
 	return i
 }
 
@@ -79,11 +79,12 @@ func (i *Interpreter) AddLoopCommand(begin rune, end rune, fn Exec) {
 	})
 }
 
-// AddCommandSet for record new command sets
+// AddCommandSet for record new command sets.
 func (i *Interpreter) AddCommandSet(c Cset) {
 	for key, value := range c.Commands {
 		i.AddCommand(key, value)
 	}
+
 	for key, value := range c.LoopCommands {
 		i.AddLoopCommand(key.Begin, key.End, value)
 	}
@@ -126,6 +127,17 @@ func (i *Interpreter) Prev() {
 	i.memory.Current = i.memory.Current.Prev(rune(0))
 }
 
+// ClearMemory erase all mem and set zero of current pointer.
+func (i *Interpreter) ClearMemory() {
+	i.memory.RemoveUntil(i.memory.Back)
+	i.memory.Back.Value = rune(0)
+}
+
+// clearCodeMemory erase record code memory. Usable in internal.
+func (i *Interpreter) clearCodeMemory() {
+	i.recCode.RemoveUntil(i.recCode.Back)
+}
+
 func (i *Interpreter) checkBeginEnd(key rune, check beginEnd) (res bool) {
 	for _, v := range i.loopKeys {
 		if check == begin && v.Begin == key {
@@ -140,7 +152,7 @@ func (i *Interpreter) checkBeginEnd(key rune, check beginEnd) (res bool) {
 	return
 }
 
-// checkLoop to initialize or change stack
+// checkLoop to initialize or change stack.
 func (i *Interpreter) changeStack(key rune) (*stackLoop, error) {
 	var changedStack *stackLoop
 
@@ -149,15 +161,13 @@ func (i *Interpreter) changeStack(key rune) (*stackLoop, error) {
 		if i.stackCurrent == nil || i.stackCurrent.end == nil {
 			// add a new loop and go inside
 			changedStack = i.addLoop()
-		} else {
+		} else if i.stackCurrent.begin != i.recCode.Current {
 			// find own stack
 			// for nested loops
-			if i.stackCurrent.begin != i.recCode.Current {
-				for _, v := range i.stackCurrent.stackLoop {
-					if v.begin == i.recCode.Current {
-						changedStack = v
-						break
-					}
+			for _, v := range i.stackCurrent.stackLoop {
+				if v.begin == i.recCode.Current {
+					changedStack = v
+					break
 				}
 			}
 		}
@@ -170,7 +180,7 @@ func (i *Interpreter) changeStack(key rune) (*stackLoop, error) {
 			changedStack = i.stackCurrent.stackUpper
 		} else {
 			// should not possible
-			return nil, ErrSkip
+			return nil, errSkip
 		}
 	}
 
@@ -178,12 +188,15 @@ func (i *Interpreter) changeStack(key rune) (*stackLoop, error) {
 }
 
 // Interpret is a runner.
-func (i *Interpreter) Interpret(r io.Reader) {
+// if reader get error other than io.EOF, return it.
+func (i *Interpreter) Interpret(r io.Reader) error {
 	reader := bufio.NewReader(r)
 
 	gotoLoopEnd := false
+
 	var loopStack *stackLoop
 	var changeStack *stackLoop
+
 	for {
 		// read a rune
 		key, _, err := reader.ReadRune()
@@ -191,8 +204,7 @@ func (i *Interpreter) Interpret(r io.Reader) {
 			if err == io.EOF {
 				break
 			}
-			log.Println(err)
-			continue
+			return err
 		}
 
 		// check keyword is exist
@@ -205,13 +217,16 @@ func (i *Interpreter) Interpret(r io.Reader) {
 			i.recCode.Current = i.recCode.Back.Next(key)
 		} else {
 			i.recCode.Current.Value = key
+			if i.recCode.Len > 1 {
+				i.clearCodeMemory()
+			}
 		}
 
 		// inner loop for stacks
 		for {
 			key = i.recCode.Current.Value.(rune)
 			if changeStack, err = i.changeStack(key); err != nil {
-				continue
+				break
 			}
 
 			if i.checkBeginEnd(key, begin) {
@@ -227,6 +242,7 @@ func (i *Interpreter) Interpret(r io.Reader) {
 					gotoLoopEnd = false
 					loopStack = nil
 				}
+
 				break
 			}
 
@@ -266,6 +282,8 @@ func (i *Interpreter) Interpret(r io.Reader) {
 			i.recCode.Current = i.recCode.Current.nextElement
 		}
 	}
+
+	return nil
 }
 
 // NewInterpreter is helps to initialize new interpreter and return it.

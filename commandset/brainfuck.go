@@ -9,7 +9,7 @@ import (
 	"github.com/rytsh/brainit"
 )
 
-// Brainfuck is totaly brainfuck command set for brainit
+// Brainfuck is totaly brainfuck command set for brainit.
 var Brainfuck = brainit.Cset{
 	LoopCommands: map[brainit.LoopKey]brainit.Exec{
 		{

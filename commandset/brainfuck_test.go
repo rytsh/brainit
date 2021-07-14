@@ -1,4 +1,4 @@
-package commandset
+package commandset_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/rytsh/brainit"
+	"github.com/rytsh/brainit/commandset"
 )
 
 type TResult uint
@@ -100,17 +101,21 @@ func TestInterpreter_RUNTIME(t *testing.T) {
 		},
 	}
 
+	// get interpreter
+	myInterpreter := brainit.NewInterpreter()
+	// add brainfuck commands
+	myInterpreter.AddCommandSet(commandset.Brainfuck)
+	testManipulation(myInterpreter)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result = rest{}
 			reader := strings.NewReader(tt.str)
 
-			// get interpreter
-			myInterpreter := brainit.NewInterpreter()
-			// add brainfuck commands
-			myInterpreter.AddCommandSet(Brainfuck)
-			testManipulation(myInterpreter)
-			myInterpreter.Interpret(reader)
+			myInterpreter.ClearMemory()
+			if err := myInterpreter.Interpret(reader); err != nil {
+				t.Error(err)
+			}
 
 			resString := "Result:[%v] Wants:[%v]"
 			failed := false

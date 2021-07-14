@@ -13,6 +13,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Upps:", err)
 	}
+	defer resp.Body.Close()
 
 	myInterpreter := brainit.NewInterpreter()
 	myInterpreter.AddCommandSet(commandset.Brainfuck)
