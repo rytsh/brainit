@@ -37,12 +37,12 @@ func TestInterpreter_ClearMemory(t *testing.T) {
 		t.Error(err)
 	}
 
-	if i.recCode.Current != i.recCode.Front || i.recCode.Current != i.recCode.Back {
+	if i.recCode.GetCurrent() != i.recCode.GetFront() || i.recCode.GetCurrent() != i.recCode.GetBack() {
 		t.Error("recCode clear failed!")
 	}
 
 	i.ClearMemory()
-	if i.memory.Current != i.memory.Front || i.memory.Current != i.memory.Back {
+	if i.memory.GetCurrent() != i.memory.GetFront() || i.memory.GetCurrent() != i.memory.GetBack() {
 		t.Error("memory clear failed!")
 	}
 }

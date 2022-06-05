@@ -10,6 +10,8 @@ import (
 	"bufio"
 	"errors"
 	"io"
+
+	"github.com/rytsh/casset"
 )
 
 // ErrExit should throw for exiting loop.
@@ -40,16 +42,16 @@ type Cset struct {
 }
 
 type stackLoop struct {
-	begin      *Element
-	end        *Element
+	begin      casset.IElement
+	end        casset.IElement
 	stackLoop  []*stackLoop
 	stackUpper *stackLoop
 }
 
 // Interpreter is main struct hold all memory, code, executors and stacks.
 type Interpreter struct {
-	memory       *Memory
-	recCode      *Memory
+	memory       casset.IMemory
+	recCode      casset.IMemory
 	stackCurrent *stackLoop
 	executor     map[rune]Exec
 	loopKeys     []LoopKey
@@ -57,8 +59,8 @@ type Interpreter struct {
 
 // Init is initialize a Interpreter.
 func (i *Interpreter) Init() *Interpreter {
-	i.memory = NewMemory(rune(0))
-	i.recCode = NewMemory(rune(0))
+	i.memory = casset.NewMemory(rune(0))
+	i.recCode = casset.NewMemory(rune(0))
 	i.executor = make(map[rune]Exec)
 
 	return i
@@ -92,12 +94,12 @@ func (i *Interpreter) AddCommandSet(c Cset) {
 
 // GetValue is return current value in a current memory.
 func (i *Interpreter) GetValue() rune {
-	return i.memory.Current.Value.(rune)
+	return i.memory.GetCurrent().GetValue().(rune)
 }
 
 // SetValue is setting a value in a current memory.
 func (i *Interpreter) SetValue(v rune) {
-	i.memory.Current.Value = v
+	i.memory.GetCurrent().SetValue(v)
 }
 
 func (i *Interpreter) exec(key rune) error {
@@ -107,7 +109,7 @@ func (i *Interpreter) exec(key rune) error {
 func (i *Interpreter) addLoop() *stackLoop {
 	loop := new(stackLoop)
 	loop.stackLoop = make([]*stackLoop, 0)
-	loop.begin = i.recCode.Current
+	loop.begin = i.recCode.GetCurrent()
 
 	if i.stackCurrent != nil {
 		loop.stackUpper = i.stackCurrent
@@ -119,23 +121,23 @@ func (i *Interpreter) addLoop() *stackLoop {
 
 // Next is move to next memory area.
 func (i *Interpreter) Next() {
-	i.memory.Current = i.memory.Current.Next(rune(0))
+	i.memory.SetCurrent(i.memory.GetCurrent().Next(rune(0)))
 }
 
 // Prev is move to previous memory area.
 func (i *Interpreter) Prev() {
-	i.memory.Current = i.memory.Current.Prev(rune(0))
+	i.memory.SetCurrent(i.memory.GetCurrent().Prev(rune(0)))
 }
 
 // ClearMemory erase all mem and set zero of current pointer.
 func (i *Interpreter) ClearMemory() {
-	i.memory.RemoveUntil(i.memory.Back)
-	i.memory.Back.Value = rune(0)
+	i.memory.Remove(nil, nil)
+	i.memory.Init(casset.NewElement(rune(0)))
 }
 
 // clearCodeMemory erase record code memory. Usable in internal.
 func (i *Interpreter) clearCodeMemory() {
-	i.recCode.RemoveUntil(i.recCode.Back)
+	i.recCode.Remove(nil, i.recCode.GetBack().GetPrevElement())
 }
 
 func (i *Interpreter) checkBeginEnd(key rune, check beginEnd) (res bool) {
@@ -161,11 +163,11 @@ func (i *Interpreter) changeStack(key rune) (*stackLoop, error) {
 		if i.stackCurrent == nil || i.stackCurrent.end == nil {
 			// add a new loop and go inside
 			changedStack = i.addLoop()
-		} else if i.stackCurrent.begin != i.recCode.Current {
+		} else if i.stackCurrent.begin != i.recCode.GetCurrent() {
 			// find own stack
 			// for nested loops
 			for _, v := range i.stackCurrent.stackLoop {
-				if v.begin == i.recCode.Current {
+				if v.begin == i.recCode.GetCurrent() {
 					changedStack = v
 					break
 				}
@@ -175,7 +177,7 @@ func (i *Interpreter) changeStack(key rune) (*stackLoop, error) {
 		if i.stackCurrent != nil {
 			// add end info to current stack
 			if i.stackCurrent.end == nil {
-				i.stackCurrent.end = i.recCode.Current
+				i.stackCurrent.end = i.recCode.GetCurrent()
 			}
 			changedStack = i.stackCurrent.stackUpper
 		} else {
@@ -214,17 +216,18 @@ func (i *Interpreter) Interpret(r io.Reader) error {
 
 		// record code
 		if i.stackCurrent != nil {
-			i.recCode.Current = i.recCode.Back.Next(key)
+			i.recCode.SetCurrent(i.recCode.GetBack().Next(key))
 		} else {
-			i.recCode.Current.Value = key
-			if i.recCode.Len > 1 {
+			i.recCode.GetCurrent().SetValue(key)
+			if i.recCode.GetLen().Cmp(1) == 1 {
 				i.clearCodeMemory()
 			}
 		}
 
 		// inner loop for stacks
 		for {
-			key = i.recCode.Current.Value.(rune)
+			key = i.recCode.GetCurrent().GetValue().(rune)
+
 			if changeStack, err = i.changeStack(key); err != nil {
 				break
 			}
@@ -258,7 +261,7 @@ func (i *Interpreter) Interpret(r io.Reader) error {
 						}
 						// inside of stuck
 						// jump to end
-						i.recCode.Current = i.stackCurrent.end
+						i.recCode.SetCurrent(i.stackCurrent.end)
 					}
 					// end of the stuck exit
 					i.stackCurrent = i.stackCurrent.stackUpper
@@ -275,11 +278,11 @@ func (i *Interpreter) Interpret(r io.Reader) error {
 			// return loop begin
 			if err == nil && i.checkBeginEnd(key, end) {
 				// loop again
-				i.recCode.Current = i.stackCurrent.begin.nextElement
+				i.recCode.SetCurrent(i.stackCurrent.begin.GetNextElement())
 				continue
 			}
 
-			i.recCode.Current = i.recCode.Current.nextElement
+			i.recCode.SetCurrent(i.recCode.GetCurrent().GetNextElement())
 		}
 	}
 

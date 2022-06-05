@@ -32,7 +32,6 @@ var result = rest{}
 
 func testManipulation(myInterpreter *brainit.Interpreter) {
 	myInterpreter.AddCommand('.', func(i *brainit.Interpreter) error {
-		// fmt.Printf("%v", i.GetValue())
 		result.num += fmt.Sprintf("%v", i.GetValue())
 		result.pp += fmt.Sprintf("%c", i.GetValue())
 		return nil
@@ -125,7 +124,6 @@ func TestInterpreter_RUNTIME(t *testing.T) {
 					failed = true
 				}
 			} else if tt.typ == PP {
-				// fmt.Printf("\n%v\n", result.pp)
 				resString = fmt.Sprintf(resString, result.pp, tt.result)
 				if strings.Compare(result.pp, tt.result) != 0 {
 					fmt.Println(strings.Compare(result.pp, tt.result))
