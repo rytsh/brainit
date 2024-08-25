@@ -19,7 +19,7 @@ import (
 )
 
     // ...
-    resp, err := http.Get("https://raw.githubusercontent.com/erikdubbelboer/brainfuck-jit/master/mandelbrot.bf")
+    prog := `++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>++.>+.+++++++..+++.<<++.>+++++++++++++++.>.+++.------.--------.<<+.<`
     // ...
 
     // get new interpreter
@@ -28,7 +28,7 @@ import (
     myInterpreter.AddCommandSet(commandset.Brainfuck)
 
     // give an io.Reader
-    myInterpreter.Interpret(resp.Body)
+    myInterpreter.Interpret(strings.NewReader(prog))
 
     // ....
 ```
@@ -38,7 +38,7 @@ import (
 <details><summary>Mandlebrot with brainfuck</summary>
 
 ```sh
-go run _example/mandlebrot.go
+go run cmd/brainit/main.go --file examples/mandelbrot.bf
 
 AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDDDDDDDDDEGFFEEEEDDDDDDCCCCCCCCCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 AAAAAAAAAAAAAAABBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCDDDDDDDDDDEEEFGIIGFFEEEDDDDDDDDCCCCCCCCCBBBBBBBBBBBBBBBBBBBBBBBBBB

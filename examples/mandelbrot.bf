@@ -1,13 +1,3 @@
-package main
-
-import (
-	"strings"
-
-	"github.com/rytsh/brainit"
-	"github.com/rytsh/brainit/commandset"
-)
-
-var Mandelbrot = `
  A mandelbrot set fractal viewer in brainfuck written by Erik Bosman
 +++++++++++++[->++>>>+++++>++>+<<<<<<]>>>>>++++++>--->>>>>>>>>>+++++++++++++++[[
 >>>>>>>>>]+[<<<<<<<<<]>>>>>>>>>-]+[>>>>>>>>[-]>]<<<<<<<<<[<<<<<<<<<]>>>>>>>>[-]+
@@ -153,11 +143,3 @@ var Mandelbrot = `
 >>>]>[-]+<]]+>[-<[>>>>>>>>>]<<<<<<<<]>>>>>>>>]<<<<<<<<<[<<<<<<<<<]>>>>[-]<<<++++
 +[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<
 <<<<<]]>>>]
-`
-
-func main() {
-	myInterpreter := brainit.NewInterpreter()
-	myInterpreter.AddCommandSet(commandset.Brainfuck)
-
-	myInterpreter.Interpret(strings.NewReader(Mandelbrot))
-}
