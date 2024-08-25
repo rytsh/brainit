@@ -1,5 +1,5 @@
 module github.com/rytsh/brainit
 
-go 1.18
+go 1.23
 
-require github.com/rytsh/casset v0.1.1
+require github.com/rytsh/casset v0.2.0
