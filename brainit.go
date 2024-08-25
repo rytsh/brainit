@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"math/big"
 
 	"github.com/rytsh/casset"
 )
@@ -53,8 +54,8 @@ type Interpreter struct {
 
 // Init is initialize a Interpreter.
 func (i *Interpreter) Init() *Interpreter {
-	i.memory = casset.NewMemory[rune]().Init(casset.NewElement(rune(0)))
-	i.recCode = casset.NewMemory[rune]().Init(casset.NewElement(rune(0)))
+	i.memory = casset.NewMemory[rune]()
+	i.recCode = casset.NewMemory[rune]()
 
 	i.executor = make(map[rune]Exec)
 	i.currentMem = i.memory.GetFront()
@@ -128,13 +129,14 @@ func (i *Interpreter) Prev() {
 
 // ClearMemory erase all mem and set zero of current pointer.
 func (i *Interpreter) ClearMemory() {
-	i.memory.Init(casset.NewElement(rune(0)))
+	i.memory.Clear()
 	i.currentMem = i.memory.GetFront()
 }
 
 // clearCodeMemory erase record code memory. Usable in internal.
 func (i *Interpreter) clearCodeMemory() {
-	i.recCode.Init(i.recCode.GetBack())
+	lastValue := i.recCode.GetBack().GetValue()
+	i.recCode.Clear().GetFront().SetValue(lastValue)
 	i.currentRec = i.recCode.GetFront()
 }
 
@@ -223,7 +225,7 @@ func (i *Interpreter) Interpret(r io.Reader) error {
 			i.currentRec = i.recCode.GetBack().Next(key)
 		} else {
 			i.currentRec.SetValue(key)
-			if i.recCode.GetLen().Cmp(1) == 1 {
+			if i.recCode.GetLen().Cmp(big.NewInt(1)) == 1 {
 				i.clearCodeMemory()
 			}
 		}
