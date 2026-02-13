@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"math/big"
 
 	"github.com/rytsh/casset"
 )
@@ -225,7 +224,7 @@ func (i *Interpreter) Interpret(r io.Reader) error {
 			i.currentRec = i.recCode.GetBack().Next(key)
 		} else {
 			i.currentRec.SetValue(key)
-			if i.recCode.GetLen().Cmp(big.NewInt(1)) == 1 {
+			if i.recCode.Len() > 1 {
 				i.clearCodeMemory()
 			}
 		}
